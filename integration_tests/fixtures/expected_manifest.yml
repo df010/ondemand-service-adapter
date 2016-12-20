@@ -1,0 +1,29 @@
+---
+name: some-name
+
+releases: [{name: redis, version: 0+dev.1}]
+
+stemcells:
+- alias: &stemcell only-stemcell
+  os: Windows
+  version: "3.1"
+
+instance_groups:
+- name: redis
+  instances: 1
+  jobs:
+  - name: redis
+    release: redis
+  vm_type: small
+  persistent_disk_type: ten
+  stemcell: *stemcell
+  networks:
+  - name: &network example-network
+  azs: [example-az]
+
+update:
+  canaries: 1
+  max_in_flight: 10
+  canary_watch_time: 30000-240000
+  update_watch_time: 30000-240000
+  serial: false
