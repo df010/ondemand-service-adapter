@@ -8,10 +8,12 @@ import (
 
 type ManifestGenerator struct {
 	StderrLogger *log.Logger
+	config       Config
 }
 
 type Binder struct {
 	StderrLogger *log.Logger
+	config       Config
 }
 
 var InstanceGroupMapper = serviceadapter.GenerateInstanceGroupsWithNoProperties

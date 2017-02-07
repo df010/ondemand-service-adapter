@@ -10,6 +10,7 @@ import (
 
 func (b *Binder) CreateBinding(bindingId string, boshVMs bosh.BoshVMs, manifest bosh.BoshManifest, requestParams serviceadapter.RequestParameters) (serviceadapter.Binding, error) {
 
+	GetConfigInstance().getCredentials(boshVMs)
 	redisHosts := boshVMs["redis"]
 	if len(redisHosts) == 0 {
 		b.StderrLogger.Println("no VMs for instance group redis")

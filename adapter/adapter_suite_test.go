@@ -5,7 +5,7 @@ import (
 	"io"
 	"log"
 
-	"github.com/df010/redis-service-adapter/adapter"
+	"github.com/df010/ondemand-service-adapter/adapter"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 

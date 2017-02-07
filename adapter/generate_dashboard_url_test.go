@@ -1,7 +1,7 @@
 package adapter_test
 
 import (
-	"github.com/df010/redis-service-adapter/adapter"
+	"github.com/df010/ondemand-service-adapter/adapter"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 

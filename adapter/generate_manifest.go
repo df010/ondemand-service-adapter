@@ -12,8 +12,19 @@ import (
 const OnlyStemcellAlias = "only-stemcell"
 
 func defaultDeploymentInstanceGroupsToJobs() map[string][]string {
-	return map[string][]string{
-		"redis": []string{"redis"}}
+	result := make(map[string][]string)
+	for _, ig := range GetConfigInstance().Instance_Groups {
+		result[ig.Name] = ig.Templates
+	}
+	return result
+}
+
+func getJobs() []string {
+	result := make([]string, len(GetConfigInstance().Instance_Groups))
+	for i, ig := range GetConfigInstance().Instance_Groups {
+		result[i] = ig.Name
+	}
+	return result
 }
 
 func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.ServiceDeployment,
@@ -26,9 +37,11 @@ func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.Se
 	if previousPlan != nil {
 		prev := instanceCounts(*previousPlan)
 		current := instanceCounts(servicePlan)
-		if prev["redis"] > current["redis"] {
-			a.StderrLogger.Println("cannot migrate to a smaller plan")
-			return bosh.BoshManifest{}, errors.New("")
+		for _, jobName := range getJobs() {
+			if prev[jobName] > current[jobName] {
+				a.StderrLogger.Println(fmt.Sprintf("cannot migrate to a smaller plan for %s", jobName))
+				return bosh.BoshManifest{}, errors.New("")
+			}
 		}
 	}
 
@@ -43,7 +56,7 @@ func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.Se
 
 	deploymentInstanceGroupsToJobs := defaultDeploymentInstanceGroupsToJobs()
 
-	err := checkInstanceGroupsPresent([]string{"redis"}, servicePlan.InstanceGroups)
+	err := checkInstanceGroupsPresent(getJobs(), servicePlan.InstanceGroups)
 	if err != nil {
 		a.StderrLogger.Println(err.Error())
 		return bosh.BoshManifest{}, errors.New("Contact your operator, service configuration issue occurred")
@@ -55,11 +68,13 @@ func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.Se
 		return bosh.BoshManifest{}, errors.New("")
 	}
 
-	redisInstanceGroup := &instanceGroups[0]
+	for _, ig := range instanceGroups {
+		oneInstanceGroup := &ig
 
-	if len(redisInstanceGroup.Networks) != 1 {
-		a.StderrLogger.Println(fmt.Sprintf("expected 1 network for %s, got %d", redisInstanceGroup.Name, len(redisInstanceGroup.Networks)))
-		return bosh.BoshManifest{}, errors.New("")
+		if len(oneInstanceGroup.Networks) != 1 {
+			a.StderrLogger.Println(fmt.Sprintf("expected 1 network for %s, got %d", oneInstanceGroup.Name, len(oneInstanceGroup.Networks)))
+			return bosh.BoshManifest{}, errors.New("")
+		}
 	}
 
 	manifestProperties := map[string]interface{}{}

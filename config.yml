@@ -1,0 +1,9 @@
+---
+binding_credentials:
+- name: redis
+  datatype: array
+  value: "[JOB.redis.ip]:6379"
+instance_groups:
+- name: redis
+  templates:
+  - redis

@@ -1,7 +1,9 @@
 package adapter_test
 
 import (
-	"github.com/df010/redis-service-adapter/adapter"
+	"fmt"
+
+	"github.com/df010/ondemand-service-adapter/adapter"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
@@ -67,6 +69,7 @@ var _ = Describe("generating manifests", func() {
 			manifest, generateErr = manifestGenerator.GenerateManifest(serviceDeployment, plan, map[string]interface{}{}, nil, nil)
 		})
 
+		fmt.Println(fmt.Sprintf(".....123.............. %s", manifest.Name))
 		It("returns no error", func() {
 			Expect(generateErr).NotTo(HaveOccurred())
 		})
