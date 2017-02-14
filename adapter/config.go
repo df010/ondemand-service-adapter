@@ -29,7 +29,7 @@ var once sync.Once
 
 func GetConfigInstance() *Config {
 	once.Do(func() {
-		yamlFile, _ := ioutil.ReadFile("/var/vcap/sys/run/ondemand-service-adapter/config/config.yml")
+		yamlFile, _ := ioutil.ReadFile("/var/vcap/jobs/ondemand/config/config.yml")
 		err := yaml.Unmarshal(yamlFile, config)
 
 		if err != nil {
