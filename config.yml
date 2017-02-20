@@ -1,9 +1,33 @@
 ---
 binding_credentials:
-- name: redis
+- name: haproxy
+  plan: haproxy
   datatype: array
-  value: "[JOB.redis.ip]:6379"
+  value: "[JOB.haproxy.ip]"
+input_mappings:
+- key: keepalived.vip
+  valueformat: ip_range
+  valuemap: one_from_many
+- key: keepalived.virtual_router_id
+  valueformat: number_range
+  valuemap: one_from_many
+- key: keepalived.priority
+  valueformat: number
+  valuemap: one_from_one
 instance_groups:
-- name: redis
+- name: haproxy
   templates:
-  - redis
+  - haproxy
+    keepalived
+- name: lvs
+  templates:
+  - lvs
+    keepalived
+- name: nginx
+  templates:
+  - nginx
+    keepalived
+- name: apache
+  templates:
+  - apache
+    keepalived

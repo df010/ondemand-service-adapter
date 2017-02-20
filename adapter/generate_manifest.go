@@ -33,7 +33,7 @@ func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.Se
 	previousManifest *bosh.BoshManifest,
 	previousPlan *serviceadapter.Plan,
 ) (bosh.BoshManifest, error) {
-
+	fmt.Println(fmt.Sprintf("service plan is.... %v ", servicePlan))
 	if previousPlan != nil {
 		prev := instanceCounts(*previousPlan)
 		current := instanceCounts(servicePlan)
@@ -70,12 +70,14 @@ func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.Se
 
 	for _, ig := range instanceGroups {
 		oneInstanceGroup := &ig
+		fmt.Println(fmt.Sprintf("instance props.... %v ", oneInstanceGroup.Properties))
 
 		if len(oneInstanceGroup.Networks) != 1 {
 			a.StderrLogger.Println(fmt.Sprintf("expected 1 network for %s, got %d", oneInstanceGroup.Name, len(oneInstanceGroup.Networks)))
 			return bosh.BoshManifest{}, errors.New("")
 		}
 	}
+	// servicePlan.InstanceGroups[0]
 
 	manifestProperties := map[string]interface{}{}
 
