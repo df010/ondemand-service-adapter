@@ -1,7 +1,6 @@
 package adapter
 
 import (
-	"fmt"
 	"io/ioutil"
 	"regexp"
 	"strings"
@@ -11,6 +10,12 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 )
+
+type Input_Mapping struct {
+	Key         string `yaml:"key"`
+	Valueformat string `yaml:"valueformat"`
+	Valuemap    string `yaml:"valuemap"`
+}
 
 type Config struct {
 	Binding_Credentials []struct {
@@ -22,6 +27,7 @@ type Config struct {
 		Name      string   `yaml:"name"`
 		Templates []string `yaml:"templates"`
 	}
+	Input_Mappings []Input_Mapping
 }
 
 var config *Config = &Config{}
@@ -37,6 +43,15 @@ func GetConfigInstance() *Config {
 		}
 	})
 	return config
+}
+
+func (a *Config) getInputMapping(key string) *Input_Mapping {
+	for _, inputMap := range a.Input_Mappings {
+		if inputMap.Key == key {
+			return &inputMap
+		}
+	}
+	return nil
 }
 
 func (a *Config) getCredentials(boshVMs bosh.BoshVMs) map[string]interface{} {
@@ -67,6 +82,5 @@ func (a *Config) getCredentials(boshVMs bosh.BoshVMs) map[string]interface{} {
 		}
 
 	}
-	fmt.Println(fmt.Sprintf("result.... %v ", result))
 	return result
 }

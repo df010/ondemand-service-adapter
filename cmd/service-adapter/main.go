@@ -16,5 +16,6 @@ func main() {
 	binder := &adapter.Binder{
 		StderrLogger: stderrLogger,
 	}
+	// stderrLogger.Println(fmt.Sprintf("logllll ...  %v ", os.Args))
 	serviceadapter.HandleCommandLineInvocation(os.Args, manifestGenerator, binder, &adapter.DashboardUrlGenerator{})
 }

@@ -1,7 +1,8 @@
 package adapter_test
 
 import (
-	"fmt"
+	"io/ioutil"
+	"os"
 
 	"github.com/df010/ondemand-service-adapter/adapter"
 	. "github.com/onsi/ginkgo"
@@ -11,6 +12,9 @@ import (
 )
 
 var _ = Describe("generating manifests", func() {
+	os.Remove("/var/vcap/jobs/ondemand/config/config.yml")
+	ioutil.WriteFile("/var/vcap/jobs/ondemand/config/config.yml", []byte(configString), 0644)
+
 	boolPointer := func(b bool) *bool {
 		return &b
 	}
@@ -19,7 +23,7 @@ var _ = Describe("generating manifests", func() {
 		serviceRelease = serviceadapter.ServiceRelease{
 			Name:    "wicked-release",
 			Version: "4",
-			Jobs:    []string{"redis"},
+			Jobs:    []string{"haproxy", "keepalived"},
 		}
 		serviceDeployment = serviceadapter.ServiceDeployment{
 			DeploymentName: "a-great-deployment",
@@ -27,15 +31,17 @@ var _ = Describe("generating manifests", func() {
 			Stemcell:       serviceadapter.Stemcell{OS: "TempleOS", Version: "4.05"},
 		}
 		generatedInstanceGroups = []bosh.InstanceGroup{{
-			Name:     "redis",
+			Name:     "haproxy",
 			Networks: []bosh.Network{{Name: "an-etwork"}},
 			Jobs: []bosh.Job{{
-				Name: "redis",
+				Name: "haproxy",
+			}, {
+				Name: "keepalived",
 			}},
 		}}
 		planInstanceGroups = []serviceadapter.InstanceGroup{
 			{
-				Name: "redis",
+				Name: "haproxy",
 			},
 		}
 		previousPlanInstanceGroups = []serviceadapter.InstanceGroup{}
@@ -50,6 +56,9 @@ var _ = Describe("generating manifests", func() {
 	)
 
 	BeforeEach(func() {
+
+		// os.Remove("/var/vcap/jobs/ondemand/config/config.yml")
+		// os.Link("/home/df/gocode/src/github.com/df010/ondemand-service-adapter/config.yml", "/var/vcap/jobs/ondemand/config/config.yml")
 		plan = serviceadapter.Plan{InstanceGroups: planInstanceGroups}
 	})
 	BeforeEach(func() {
@@ -69,7 +78,6 @@ var _ = Describe("generating manifests", func() {
 			manifest, generateErr = manifestGenerator.GenerateManifest(serviceDeployment, plan, map[string]interface{}{}, nil, nil)
 		})
 
-		fmt.Println(fmt.Sprintf(".....123.............. %s", manifest.Name))
 		It("returns no error", func() {
 			Expect(generateErr).NotTo(HaveOccurred())
 		})
@@ -105,7 +113,7 @@ var _ = Describe("generating manifests", func() {
 			previousPlan serviceadapter.Plan
 		)
 		BeforeEach(func() {
-			planInstanceGroups = []serviceadapter.InstanceGroup{{Name: "redis", Instances: 2}}
+			planInstanceGroups = []serviceadapter.InstanceGroup{{Name: "haproxy", Instances: 2}}
 			plan = serviceadapter.Plan{InstanceGroups: planInstanceGroups}
 		})
 		JustBeforeEach(func() {
@@ -114,9 +122,9 @@ var _ = Describe("generating manifests", func() {
 			manifest, generateErr = manifestGenerator.GenerateManifest(serviceDeployment, plan, map[string]interface{}{"parameters": map[string]interface{}{}}, nil, &previousPlan)
 		})
 
-		Context("when the previous plan had more redis", func() {
+		Context("when the previous plan had more haproxy", func() {
 			BeforeEach(func() {
-				previousPlanInstanceGroups = []serviceadapter.InstanceGroup{{Name: "redis", Instances: 3}}
+				previousPlanInstanceGroups = []serviceadapter.InstanceGroup{{Name: "haproxy", Instances: 3}}
 			})
 			It("fails", func() {
 				Expect(generateErr).To(HaveOccurred())

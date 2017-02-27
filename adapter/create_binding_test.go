@@ -1,6 +1,9 @@
 package adapter_test
 
 import (
+	"io/ioutil"
+	"os"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
@@ -8,6 +11,9 @@ import (
 )
 
 var _ = Describe("Create", func() {
+	os.Remove("/var/vcap/jobs/ondemand/config/config.yml")
+	ioutil.WriteFile("/var/vcap/jobs/ondemand/config/config.yml", []byte(configString), 0644)
+
 	var (
 		boshVMs map[string][]string
 

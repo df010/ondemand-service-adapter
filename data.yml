@@ -1,0 +1,17 @@
+---
+inputs:
+- key: keepalived.vip
+  valueformat: ip_range
+  valuemap: one_from_many
+  plan: haproxy
+  value: 192.168.1.1-192.168.1.2,192.168.1.150
+  available:
+  - 192.168.1.2
+    192.168.1.150
+  used:
+  - value: 192.168.1.1
+    deployment: service-instance_df82c011-1b80-4685-ba35-461bedda8f3d
+- key: keepalived.virtual_router_id
+  valueformat: number_range
+  valuemap: one_from_many
+  value:

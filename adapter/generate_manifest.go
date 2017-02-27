@@ -33,7 +33,7 @@ func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.Se
 	previousManifest *bosh.BoshManifest,
 	previousPlan *serviceadapter.Plan,
 ) (bosh.BoshManifest, error) {
-	fmt.Println(fmt.Sprintf("service plan is.... %v ", servicePlan))
+	// a.StderrLogger.Println(fmt.Sprintf("service plan is.... %v ", servicePlan))
 	if previousPlan != nil {
 		prev := instanceCounts(*previousPlan)
 		current := instanceCounts(servicePlan)
@@ -53,16 +53,19 @@ func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.Se
 			Version: serviceRelease.Version,
 		})
 	}
-
+	// a.StderrLogger.Println(fmt.Sprintf("service ... 1 "))
 	deploymentInstanceGroupsToJobs := defaultDeploymentInstanceGroupsToJobs()
-
-	err := checkInstanceGroupsPresent(getJobs(), servicePlan.InstanceGroups)
-	if err != nil {
-		a.StderrLogger.Println(err.Error())
-		return bosh.BoshManifest{}, errors.New("Contact your operator, service configuration issue occurred")
-	}
+	// a.StderrLogger.Println(fmt.Sprintf("service ... 2 %v ", deploymentInstanceGroupsToJobs))
+	// err := checkInstanceGroupsPresent(getJobs(), servicePlan.InstanceGroups)
+	//
+	// a.StderrLogger.Println(fmt.Sprintf("service ... 3 "))
+	// if err != nil {
+	// 	a.StderrLogger.Println(err.Error())
+	// 	return bosh.BoshManifest{}, errors.New("Contact your operator, service configuration issue occurred")
+	// }
 
 	instanceGroups, err := InstanceGroupMapper(servicePlan.InstanceGroups, serviceDeployment.Releases, OnlyStemcellAlias, deploymentInstanceGroupsToJobs)
+	// a.StderrLogger.Println(fmt.Sprintf("service ... 4 %v ", instanceGroups))
 	if err != nil {
 		a.StderrLogger.Println(err.Error())
 		return bosh.BoshManifest{}, errors.New("")
@@ -70,7 +73,6 @@ func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.Se
 
 	for _, ig := range instanceGroups {
 		oneInstanceGroup := &ig
-		fmt.Println(fmt.Sprintf("instance props.... %v ", oneInstanceGroup.Properties))
 
 		if len(oneInstanceGroup.Networks) != 1 {
 			a.StderrLogger.Println(fmt.Sprintf("expected 1 network for %s, got %d", oneInstanceGroup.Name, len(oneInstanceGroup.Networks)))
@@ -78,9 +80,16 @@ func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.Se
 		}
 	}
 	// servicePlan.InstanceGroups[0]
+	instanceGroupName := ""
+	for _, grp := range servicePlan.InstanceGroups {
+		instanceGroupName = instanceGroupName + "-" + grp.Name
+	}
 
 	manifestProperties := map[string]interface{}{}
+	manifestProperties = merge(manifestProperties, servicePlan.Properties)
+	manifestProperties = merge(manifestProperties, requestParams)
 
+	manifestProperties, err = (&Persistent{}).Allocate(manifestProperties, instanceGroupName, serviceDeployment.DeploymentName)
 	var updateBlock = bosh.Update{
 		Canaries:        1,
 		MaxInFlight:     10,
@@ -99,7 +108,8 @@ func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.Se
 		}
 	}
 
-	return bosh.BoshManifest{
+	// a.StderrLogger.Println(fmt.Sprintf("instance groups are .... %v ", instanceGroups))
+	result := bosh.BoshManifest{
 		Name:     serviceDeployment.DeploymentName,
 		Releases: releases,
 		Stemcells: []bosh.Stemcell{{
@@ -110,7 +120,20 @@ func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.Se
 		InstanceGroups: instanceGroups,
 		Properties:     manifestProperties,
 		Update:         updateBlock,
-	}, nil
+	}
+
+	// a.StderrLogger.Println(fmt.Sprintf("bosh deployment is.... %v ", result))
+	return result, nil
+}
+
+func merge(a map[string]interface{}, b map[string]interface{}) map[string]interface{} {
+	if b == nil {
+		return a
+	}
+	for k, v := range b {
+		a[k] = v
+	}
+	return a
 }
 
 func contains(s []string, e string) bool {
