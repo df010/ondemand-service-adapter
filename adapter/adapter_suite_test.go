@@ -30,6 +30,9 @@ input_mappings:
 - key: keepalived.vip2
   valueformat: ip_range
   valuemap: 1:all
+- key: keepalived.vip3
+  valueformat: ip_range
+  valuemap: 1:all
 - key: keepalived.virtual_router_id
   valueformat: number_range
   valuemap: 2:all

@@ -15,34 +15,35 @@ import (
 )
 
 type Used struct {
-	Values     []string `yaml:"values"`
-	Deployment string   `yaml:"deployment"`
+	Values     []interface{} `yaml:"values"`
+	Deployment string        `yaml:"deployment"`
 }
 
 const (
 	VALUE_FORMAT_IP_RANGE     = "ip_range"
 	VALUE_FORMAT_NUMBER_RANGE = "number_range"
+	VALUE_FORMAT_NUMBER       = "number"
 	STORE_FOLDER              = "/var/vcap/store/broker/adapter/"
 	STORE_FILE                = STORE_FOLDER + "data.yml"
 )
 
 type Input struct {
-	Key         string   `yaml:"key"`
-	Valueformat string   `yaml:"valueformat"`
-	Valuemap    string   `yaml:"valuemap"`
-	Value       string   `yaml:"value"`
-	Plan        string   `yaml:"plan"`
-	Available   []string `yaml:"available"`
-	Used        []Used   `yaml:"used"`
+	Key         string        `yaml:"key"`
+	Valueformat string        `yaml:"valueformat"`
+	Valuemap    string        `yaml:"valuemap"`
+	Value       interface{}   `yaml:"value"`
+	Plan        string        `yaml:"plan"`
+	Available   []interface{} `yaml:"available"`
+	Used        []Used        `yaml:"used"`
 }
 type Persistent struct {
 	Inputs []Input `yaml:"inputs"`
 }
 type ValueRequest struct {
-	Key      string `yaml:"key"`
-	Value    string `yaml:"value"`
-	Number   int    `yaml:"number"`
-	Specific bool   `yaml:"managed"` //
+	Key      string      `yaml:"key"`
+	Value    interface{} `yaml:"value"`
+	Number   int         `yaml:"number"`
+	Specific bool        `yaml:"managed"` //
 }
 type PersistentRequest struct {
 	Plan       string         `yaml:"plan"`
@@ -114,35 +115,54 @@ func rangeToValues(from string, to string, format string) ([]string, error) {
 	}
 }
 
-func (a *Persistent) usedToMap(input *Input) map[string]interface{} {
-	result := make(map[string]interface{})
+func (a *Persistent) usedToMap(input *Input) map[interface{}]interface{} {
+	result := make(map[interface{}]interface{})
 	for _, used := range input.Used {
 		for _, value := range used.Values {
 			result[value] = value
 		}
 	}
 	return result
+}
 
+func arrConvert(in []string, typ string) []interface{} {
+	out := make([]interface{}, len(in))
+	for index, value := range in {
+		if typ == VALUE_FORMAT_NUMBER || typ == VALUE_FORMAT_NUMBER_RANGE {
+			val, _ := strconv.Atoi(value)
+			out[index] = val
+		} else {
+			out[index] = value
+		}
+	}
+	return out
 }
 
 func (a *Persistent) initValue(input *Input, mapping *Input_Mapping) error {
-	var vals []string
+	var vals []interface{}
 	input.Valueformat = mapping.Valueformat
 	input.Valuemap = mapping.Valuemap
-	commanSepVals := strings.Split(input.Value, ",")
-	for i := 0; i < len(commanSepVals); i++ {
-		hypenSepVals := strings.Split(commanSepVals[i], "-")
-		if len(hypenSepVals) == 1 {
-			vals = append(vals, strings.TrimSpace(hypenSepVals[0]))
-		} else if len(hypenSepVals) == 2 {
-			tvals, _ := rangeToValues(hypenSepVals[0], hypenSepVals[1], input.Valueformat)
-			vals = append(vals, tvals...)
-		} else {
-			return fmt.Errorf("unable to parse value: %s ", commanSepVals[i])
+	if reflect.ValueOf(input.Value).Kind() == reflect.String {
+		commanSepVals := strings.Split(input.Value.(string), ",")
+		var strVals []string
+		for i := 0; i < len(commanSepVals); i++ {
+			hypenSepVals := strings.Split(commanSepVals[i], "-")
+			if len(hypenSepVals) == 1 {
+				vals = append(vals, strings.TrimSpace(hypenSepVals[0]))
+			} else if len(hypenSepVals) == 2 {
+				tvals, _ := rangeToValues(hypenSepVals[0], hypenSepVals[1], input.Valueformat)
+				strVals = append(strVals, tvals...)
+			} else {
+				return fmt.Errorf("unable to parse value: %s ", commanSepVals[i])
+			}
 		}
+		vals = arrConvert(strVals, input.Valueformat)
+	} else {
+		vals = make([]interface{}, 1)
+		vals[0] = input.Value
 	}
 
-	availableVals := make([]string, len(vals))
+	availableVals := make([]interface{}, len(vals))
 	length := 0
 	useds := a.usedToMap(input)
 	for n := 0; n < len(vals); n++ {
@@ -198,7 +218,9 @@ func (a *Persistent) init(request *PersistentRequest) error {
 		}
 		err = os.MkdirAll(STORE_FOLDER, 0744)
 		err = ioutil.WriteFile(STORE_FILE, content, 0744)
-	} else {
+		if err != nil {
+			return err
+		}
 	}
 
 	yamlFile, _ := ioutil.ReadFile(STORE_FILE)
@@ -207,7 +229,9 @@ func (a *Persistent) init(request *PersistentRequest) error {
 		return err
 	}
 
-	a.initFor(request)
+	if request != nil {
+		a.initFor(request)
+	}
 
 	return nil
 }
@@ -217,6 +241,11 @@ func (a *Persistent) save() error {
 	if err != nil {
 		return err
 	}
+
+	if len(string(data)) < 50 {
+		panic(errors.New("there are no way persistent become empty after init, err"))
+	}
+
 	return ioutil.WriteFile(STORE_FILE, data, 0744)
 }
 
@@ -229,20 +258,20 @@ func (a *Persistent) findInput(plan string, key string) *Input {
 	return nil
 }
 
-func (a *Persistent) findInputs(plan string) []Input {
-	result := make([]Input, 10)
-	length := 0
-	for i := 0; i < len(a.Inputs); i++ {
-		if a.Inputs[i].Plan == plan {
-			if length >= len(result) {
-				result = append(result, make([]Input, 10)...)
-			}
-			result[length] = a.Inputs[i]
-			length++
-		}
-	}
-	return result[0:length]
-}
+// func (a *Persistent) findInputs(plan string) []Input {
+// 	result := make([]Input, 10)
+// 	length := 0
+// 	for i := 0; i < len(a.Inputs); i++ {
+// 		if a.Inputs[i].Plan == plan {
+// 			if length >= len(result) {
+// 				result = append(result, make([]Input, 10)...)
+// 			}
+// 			result[length] = a.Inputs[i]
+// 			length++
+// 		}
+// 	}
+// 	return result[0:length]
+// }
 
 func (a *Persistent) findUsed(plan string, deployment string, key string, input *Input) *Used {
 	if input.Plan != plan || input.Key != key {
@@ -340,18 +369,22 @@ func (a *Persistent) reset() {
 }
 
 func (a *Persistent) Allocate0(request *PersistentRequest) (map[string]interface{}, error) {
+	if len(request.Values) == 0 {
+		return nil, nil
+	}
 	a.reset()
-	result := make(map[string]interface{})
-	a.init(request)
+	err := a.init(request)
+	if err != nil {
+		return nil, err
+	}
 
-	// fmt.Println(fmt.Sprintf("input before request is::  %+v ", a))
+	result := make(map[string]interface{})
 
 	for _, rval := range request.Values {
 		mapping := GetConfigInstance().getInputMapping(rval.Key)
-		if mapping == nil {
+		if rval.Specific || mapping == nil {
 			result[rval.Key] = rval.Value // no config means use what service provide
 			continue
-			// return nil, fmt.Errorf("config not found for key %s ", rval.Key)
 		}
 		input := a.findInput(request.Plan, rval.Key)
 		if input == nil {
@@ -364,7 +397,10 @@ func (a *Persistent) Allocate0(request *PersistentRequest) (map[string]interface
 		}
 		result[rval.Key] = val
 	}
-	a.save()
+	err = a.save()
+	if err != nil {
+		return nil, err
+	}
 	return result, nil
 }
 
@@ -376,7 +412,6 @@ func combine(a map[string]interface{}, b map[string]interface{}) map[string]inte
 }
 
 func flatMap(prefix string, val map[string]interface{}) map[string]interface{} {
-	fmt.Println(fmt.Sprintf("kkkkkkkkkkkkk %v ", prefix))
 	result := map[string]interface{}{}
 	for key, value := range val {
 		if reflect.TypeOf(value).Kind() == reflect.Map {
@@ -437,13 +472,16 @@ func (a *Persistent) Allocate(properties map[string]interface{}, plan string, de
 
 func (a *Persistent) Release(plan string, deployment string) error {
 	a.reset()
-	inputs := a.findInputs(plan)
-	for i := 0; i < len(inputs); i++ {
-		for n := 0; n < len(inputs[i].Used); n++ {
-			used := &(inputs[i].Used[n])
+	err := a.init(nil)
+	if err != nil {
+		return err
+	}
+	for i := 0; i < len(a.Inputs); i++ {
+		for n := 0; n < len(a.Inputs[i].Used); n++ {
+			used := &(a.Inputs[i].Used[n])
 			if deployment == used.Deployment {
-				inputs[i].Used = append(inputs[i].Used[0:n], inputs[i].Used[n+1:]...)
-				inputs[i].Available = append(inputs[i].Available, used.Values...)
+				a.Inputs[i].Used = append(a.Inputs[i].Used[0:n], a.Inputs[i].Used[n+1:]...)
+				a.Inputs[i].Available = append(a.Inputs[i].Available, used.Values...)
 			}
 		}
 	}

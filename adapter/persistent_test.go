@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
-	"strconv"
 
 	"github.com/df010/ondemand-service-adapter/adapter"
 	. "github.com/onsi/ginkgo"
@@ -44,9 +43,9 @@ var _ = Describe("persistent", func() {
 			// ipaddress        net.IP
 			autoallocatedIP1 net.IP
 			specifiedIP2     string
-			twoNumber        []string
-			priority         string
-			twoTest          []string
+			twoNumber        []int
+			priority         int
+			twoTest          []int
 
 		// previousPlan serviceadapter.Plan
 		)
@@ -59,7 +58,7 @@ var _ = Describe("persistent", func() {
 				Specific: false,
 			}
 			request1.Values[1] = adapter.ValueRequest{
-				Key: "keepalived.vip2", Value: " 192.168.0.22 ",
+				Key: "keepalived.vip2", Value: "192.168.0.22",
 				Specific: true,
 			}
 			request1.Values[2] = adapter.ValueRequest{
@@ -67,7 +66,7 @@ var _ = Describe("persistent", func() {
 				Specific: false,
 			}
 			request1.Values[3] = adapter.ValueRequest{
-				Key: "keepalived.priority", Value: "100",
+				Key: "keepalived.priority", Value: 100,
 				Specific: false,
 			}
 			request1.Values[4] = adapter.ValueRequest{
@@ -89,37 +88,51 @@ var _ = Describe("persistent", func() {
 			BeforeEach(func() {
 				// fmt.Println(fmt.Sprintln(".........kk.  request is. %v", request1))
 				result, err = persistent.Allocate0(request1)
-				// fmt.Println(fmt.Sprintln(".........kk.  2. %v", result))
+				fmt.Println(fmt.Sprintln(".........kk.  2. %v", result))
+				fmt.Println(fmt.Sprintln(".........err is:: . %v", err))
 				autoallocatedIP1 = net.ParseIP((result["keepalived.vip1"]).(string))
 				// // ipaddress = net.ParseIP(autoallocatedIP1)
 				specifiedIP2 = (result["keepalived.vip2"]).(string)
-				twoNumber = (result["keepalived.virtual_router_id"]).([]string)
-				priority = (result["keepalived.priority"]).(string)
-				twoTest = (result["keepalived.test"]).([]string)
+				numberResult := (result["keepalived.virtual_router_id"]).([]interface{})
+				twoNumber = make([]int, len(numberResult))
+				for i, v := range numberResult {
+					twoNumber[i] = v.(int)
+				}
+				priority = (result["keepalived.priority"]).(int)
+				tmpR := (result["keepalived.test"]).([]interface{})
+				twoTest = make([]int, len(tmpR))
+				for i, v := range tmpR {
+					twoTest[i] = v.(int)
+				}
 			})
 
 			It("fails 22", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 			It("result is a valid ip address keepalived.vip1 ", func() {
-
+				Expect(autoallocatedIP1.To4() == nil).To(BeFalse())
+			})
+			It("result is a valid ip address keepalived.vip1, second time ", func() {
+				Expect(autoallocatedIP1.To4() == nil).To(BeFalse())
+			})
+			It("result is a valid ip address keepalived.vip1, third time ", func() {
 				Expect(autoallocatedIP1.To4() == nil).To(BeFalse())
 			})
 			It("result ip is what  I specified keepalived.vip2 ", func() {
 				Expect(specifiedIP2).To(Equal("192.168.0.22"))
 			})
 			It("get two number for keepalived.virtual_router_id ", func() {
-				Expect(strconv.Atoi(twoNumber[0])).To(BeNumerically(">=", 3))
-				Expect(strconv.Atoi(twoNumber[0])).To(BeNumerically("<=", 111))
-				Expect(strconv.Atoi(twoNumber[1])).To(BeNumerically(">=", 3))
-				Expect(strconv.Atoi(twoNumber[1])).To(BeNumerically("<=", 111))
+				Expect(twoNumber[0]).To(BeNumerically(">=", 3))
+				Expect(twoNumber[0]).To(BeNumerically("<=", 111))
+				Expect(twoNumber[1]).To(BeNumerically(">=", 3))
+				Expect(twoNumber[1]).To(BeNumerically("<=", 111))
 			})
 			It("get specified string ", func() {
 				Expect(priority).To(Equal(priority))
 			})
 			It("get two number for  keepalived.test", func() {
-				Expect(strconv.Atoi(twoTest[0])).To(BeNumerically(">=", 100))
-				Expect(strconv.Atoi(twoTest[1])).To(BeNumerically("<=", 1000))
+				Expect(twoTest[0]).To(BeNumerically(">=", 100))
+				Expect(twoTest[1]).To(BeNumerically("<=", 1000))
 			})
 		})
 
@@ -186,13 +199,16 @@ var _ = Describe("persistent", func() {
 			It("fails", func() {
 				request3.Deployment = "dep1"
 				result, err = persistent.Allocate0(request3)
+				fmt.Println(fmt.Sprintf("result for dep1 1 %+v", result))
 				Expect(err).NotTo(HaveOccurred())
 
 				result, err = persistent.Allocate0(request3) //invoke same deployment twice does not re-allocate
+				fmt.Println(fmt.Sprintf("result for dep1 2 %+v", result))
 				Expect(err).NotTo(HaveOccurred())
 
 				request3.Deployment = "dep2"
 				result, err = persistent.Allocate0(request3)
+				fmt.Println(fmt.Sprintf("result for dep2 1 %+v", result))
 				Expect(err).To(HaveOccurred())
 
 				request3.Deployment = "dep1"
@@ -201,7 +217,32 @@ var _ = Describe("persistent", func() {
 
 				request3.Deployment = "dep2"
 				result, err = persistent.Allocate0(request3)
+				fmt.Println(fmt.Sprintf("result for dep2 2 %+v", result))
 				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("compsite operation", func() {
+			BeforeEach(func() {
+
+				request1.Values = make([]adapter.ValueRequest, 1)
+				request1.Plan = "plan1"
+				request1.Deployment = "ddd1"
+
+				request1.Values[0] = adapter.ValueRequest{
+					Key: "keepalived.vip3", Value: " 192.168.0.1 - 192.168.0.30 , 192.168.0.50 ",
+					Specific: false,
+				}
+				result, err = persistent.Allocate0(request1)
+				// request1.Deployment = "ddd2"
+				// result, err = persistent.Allocate0(request1)
+				// request1.Deployment = "ddd3"
+				// result, err = persistent.Allocate0(request1)
+
+			})
+			It("fails", func() {
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result["keepalived.vip3"]).To(ContainSubstring("192.168.0.1"))
 			})
 		})
 
