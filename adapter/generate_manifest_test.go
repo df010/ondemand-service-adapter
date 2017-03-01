@@ -12,6 +12,7 @@ import (
 )
 
 var _ = Describe("generating manifests", func() {
+
 	os.Remove("/var/vcap/jobs/ondemand/config/config.yml")
 	ioutil.WriteFile("/var/vcap/jobs/ondemand/config/config.yml", []byte(configString), 0644)
 

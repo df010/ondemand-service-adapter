@@ -26,6 +26,7 @@ binding_credentials:
 input_mappings:
 - key: keepalived.vip1
   valueformat: ip_range
+  groupby: network
   valuemap: 1:all
 - key: keepalived.vip2
   valueformat: ip_range

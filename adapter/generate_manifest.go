@@ -3,8 +3,11 @@ package adapter
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
+	"github.com/df010/ondemand-service-adapter/config"
+	"github.com/df010/ondemand-service-adapter/persistent"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
@@ -13,15 +16,15 @@ const OnlyStemcellAlias = "only-stemcell"
 
 func defaultDeploymentInstanceGroupsToJobs() map[string][]string {
 	result := make(map[string][]string)
-	for _, ig := range GetConfigInstance().Instance_Groups {
+	for _, ig := range config.GetConfigInstance().Instance_Groups {
 		result[ig.Name] = ig.Templates
 	}
 	return result
 }
 
 func getJobs() []string {
-	result := make([]string, len(GetConfigInstance().Instance_Groups))
-	for i, ig := range GetConfigInstance().Instance_Groups {
+	result := make([]string, len(config.GetConfigInstance().Instance_Groups))
+	for i, ig := range config.GetConfigInstance().Instance_Groups {
 		result[i] = ig.Name
 	}
 	return result
@@ -89,7 +92,9 @@ func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.Se
 	manifestProperties = merge(manifestProperties, servicePlan.Properties)
 	manifestProperties = merge(manifestProperties, requestParams)
 
-	manifestProperties, err = (&Persistent{}).Allocate(manifestProperties, instanceGroupName, serviceDeployment.DeploymentName)
+	fmt.Fprintf(os.Stderr, "manifest of properties:: before %+v\n", manifestProperties)
+	manifestProperties, err = (&persistent.Persistent{}).Allocate(manifestProperties, instanceGroupName, serviceDeployment.DeploymentName)
+	fmt.Fprintf(os.Stderr, "manifest of properties:: after %+v\n", manifestProperties)
 	var updateBlock = bosh.Update{
 		Canaries:        1,
 		MaxInFlight:     10,

@@ -4,13 +4,14 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/df010/ondemand-service-adapter/config"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 func (b *Binder) CreateBinding(bindingId string, boshVMs bosh.BoshVMs, manifest bosh.BoshManifest, requestParams serviceadapter.RequestParameters) (serviceadapter.Binding, error) {
 
-	GetConfigInstance().getCredentials(boshVMs)
+	config.GetConfigInstance().GetCredentials(boshVMs)
 	redisHosts := boshVMs["redis"]
 	if len(redisHosts) == 0 {
 		b.StderrLogger.Println("no VMs for instance group redis")
