@@ -97,7 +97,6 @@ func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.Se
 			return bosh.BoshManifest{}, errors.New("")
 		}
 	}
-	// servicePlan.InstanceGroups[0]
 	instanceGroupName := ""
 	for _, grp := range servicePlan.InstanceGroups {
 		instanceGroupName = instanceGroupName + "-" + grp.Name
