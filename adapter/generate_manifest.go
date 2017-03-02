@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"reflect"
 	"strings"
 
 	"github.com/df010/ondemand-service-adapter/config"
@@ -68,6 +69,20 @@ func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.Se
 	// }
 
 	instanceGroups, err := InstanceGroupMapper(servicePlan.InstanceGroups, serviceDeployment.Releases, OnlyStemcellAlias, deploymentInstanceGroupsToJobs)
+	manifestProperties := map[string]interface{}{}
+	manifestProperties = merge(manifestProperties, servicePlan.Properties)
+	manifestProperties = merge(manifestProperties, requestParams)
+
+	networks := getNetworks(manifestProperties)
+	if networks != nil {
+		igs := make([]bosh.InstanceGroup, len(instanceGroups)) //copy a new array of ig to make sure the
+		for i := 0; i < len(instanceGroups); i++ {
+			igs[i] = instanceGroups[i]
+			igs[i].Networks = networks
+		}
+		instanceGroups = igs
+	}
+
 	// a.StderrLogger.Println(fmt.Sprintf("service ... 4 %v ", instanceGroups))
 	if err != nil {
 		a.StderrLogger.Println(err.Error())
@@ -88,12 +103,8 @@ func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.Se
 		instanceGroupName = instanceGroupName + "-" + grp.Name
 	}
 
-	manifestProperties := map[string]interface{}{}
-	manifestProperties = merge(manifestProperties, servicePlan.Properties)
-	manifestProperties = merge(manifestProperties, requestParams)
-
 	fmt.Fprintf(os.Stderr, "manifest of properties:: before %+v\n", manifestProperties)
-	manifestProperties, err = (&persistent.Persistent{}).Allocate(manifestProperties, instanceGroupName, serviceDeployment.DeploymentName)
+	manifestProperties, err = persistent.Allocate(manifestProperties, instanceGroupName, serviceDeployment.DeploymentName)
 	fmt.Fprintf(os.Stderr, "manifest of properties:: after %+v\n", manifestProperties)
 	var updateBlock = bosh.Update{
 		Canaries:        1,
@@ -160,6 +171,30 @@ func instanceCounts(plan serviceadapter.Plan) map[string]int {
 
 func boolPointer(b bool) *bool {
 	return &b
+}
+
+func getNetworks(props map[string]interface{}) []bosh.Network {
+	if props == nil || props["metadata"] == nil {
+		return nil
+	}
+	network := props["metadata"].(map[string]interface{})["network"]
+
+	if network == nil {
+		return nil
+	}
+	var result []bosh.Network
+	if reflect.TypeOf(network).Kind() == reflect.String {
+		result = make([]bosh.Network, 1)
+		result[0] = bosh.Network{Name: network.(string)}
+	} else if reflect.TypeOf(network).Kind() == reflect.Slice {
+		netArr := network.([]string)
+		result = make([]bosh.Network, len(netArr))
+		for i, val := range netArr {
+			result[i] = bosh.Network{Name: val}
+		}
+	}
+	return result
+
 }
 
 func checkInstanceGroupsPresent(names []string, instanceGroups []serviceadapter.InstanceGroup) error {

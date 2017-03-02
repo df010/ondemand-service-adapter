@@ -109,6 +109,50 @@ var _ = Describe("generating manifests", func() {
 		})
 	})
 
+	Context("dynamic network", func() {
+		JustBeforeEach(func() {
+			props := map[string]interface{}{}
+			props["metadata"] = map[string]interface{}{}
+			props["metadata"].(map[string]interface{})["network"] = "testnetwork"
+			manifest, generateErr = manifestGenerator.GenerateManifest(serviceDeployment, plan, props, nil, nil)
+		})
+
+		It("returns no error", func() {
+			Expect(generateErr).NotTo(HaveOccurred())
+		})
+
+		It("returns props network", func() {
+			Expect(len(manifest.InstanceGroups)).To(BeNumerically(">=", 1))
+			for _, ig := range manifest.InstanceGroups {
+				Expect(ig.Networks[0].Name).To(Equal("testnetwork"))
+			}
+		})
+	})
+
+	Context("dynamic network -2 ", func() {
+		JustBeforeEach(func() {
+			props := map[string]interface{}{}
+			props["metadata"] = map[string]interface{}{}
+			props["metadata"].(map[string]interface{})["network"] = []string{"testnetwork", "testnetwork2"}
+			manifest, generateErr = manifestGenerator.GenerateManifest(serviceDeployment, plan, props, nil, nil)
+		})
+
+		It("returns no error", func() {
+			//Also generate manifest support multiple network, but persistent does not know how to pickup
+			//muliple corresponding values for each network yet.
+			Expect(generateErr).To(HaveOccurred())
+		})
+
+		// It("returns props network", func() {
+		// 	fmt.Println(fmt.Sprintf("..... %+v   ", manifest))
+		// 	Expect(len(manifest.InstanceGroups)).To(BeNumerically(">=", 1))
+		// 	for _, ig := range manifest.InstanceGroups {
+		// 		Expect(ig.Networks[0].Name).To(Equal("testnetwork"))
+		// 		Expect(ig.Networks[1].Name).To(Equal("testnetwork2"))
+		// 	}
+		// })
+	})
+
 	Context("plan migrations", func() {
 		var (
 			previousPlan serviceadapter.Plan
