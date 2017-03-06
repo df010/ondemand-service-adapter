@@ -60,7 +60,7 @@ var _ = Describe("generating manifests", func() {
 
 		// os.Remove("/var/vcap/jobs/ondemand/config/config.yml")
 		// os.Link("/home/df/gocode/src/github.com/df010/ondemand-service-adapter/config.yml", "/var/vcap/jobs/ondemand/config/config.yml")
-		plan = serviceadapter.Plan{InstanceGroups: planInstanceGroups}
+		plan = serviceadapter.Plan{InstanceGroups: planInstanceGroups, Properties: map[string]interface{}{"metadata_config": map[string]interface{}{"network": "a|b"}}}
 	})
 	BeforeEach(func() {
 		adapter.InstanceGroupMapper = func(instanceGroups []serviceadapter.InstanceGroup,
@@ -76,7 +76,12 @@ var _ = Describe("generating manifests", func() {
 
 	Context("when the instance group mapper maps instance groups successfully", func() {
 		JustBeforeEach(func() {
-			manifest, generateErr = manifestGenerator.GenerateManifest(serviceDeployment, plan, map[string]interface{}{}, nil, nil)
+			props := map[string]interface{}{"parameters": map[string]interface{}{}}
+			props = props["parameters"].(map[string]interface{})
+			props["metadata"] = map[string]interface{}{}
+			props["metadata"].(map[string]interface{})["network"] = "an-etwork"
+
+			manifest, generateErr = manifestGenerator.GenerateManifest(serviceDeployment, plan, props, nil, nil)
 		})
 
 		It("returns no error", func() {
@@ -109,9 +114,54 @@ var _ = Describe("generating manifests", func() {
 		})
 	})
 
+	Context("props inputs", func() {
+		JustBeforeEach(func() {
+			props := map[string]interface{}{"parameters": map[string]interface{}{}}
+			props = props["parameters"].(map[string]interface{})
+			props["keepalived"] = map[string]interface{}{}
+			props["keepalived"].(map[string]interface{})["ooo"] = "kkkoo"
+			props["iii"] = "ii"
+			props["metadata"] = map[string]interface{}{}
+			props["metadata"].(map[string]interface{})["network"] = "testnetwork"
+			manifest, generateErr = manifestGenerator.GenerateManifest(serviceDeployment, plan, props, nil, nil)
+		})
+
+		It("returns no error", func() {
+			Expect(generateErr).NotTo(HaveOccurred())
+		})
+
+		It("returns assigned prop properties", func() {
+			Expect(len(manifest.InstanceGroups)).To(BeNumerically(">=", 1))
+			Expect(manifest.Properties["keepalived"].(map[string]interface{})["ooo"]).To(Equal("kkkoo"))
+			// }
+		})
+	})
+
+	Context("require parameter missing msg ", func() {
+		JustBeforeEach(func() {
+			props := map[string]interface{}{"parameters": map[string]interface{}{}}
+			props = props["parameters"].(map[string]interface{})
+			props["keepalived"] = map[string]interface{}{}
+			props["keepalived"].(map[string]interface{})["ooo"] = "kkkoo"
+			props["iii"] = "ii"
+			manifest, generateErr = manifestGenerator.GenerateManifest(serviceDeployment, plan, props, nil, nil)
+		})
+
+		It("returns error", func() {
+			Expect(generateErr).To(HaveOccurred())
+		})
+
+		It("contains error msg", func() {
+			Expect(generateErr.Error()).To(ContainSubstring("metadata.network"))
+			// Expect(generateErr.Error()).To(ContainSubstring("metadata_config.network"))
+		})
+
+	})
+
 	Context("dynamic network", func() {
 		JustBeforeEach(func() {
-			props := map[string]interface{}{}
+			props := map[string]interface{}{"parameters": map[string]interface{}{}}
+			props = props["parameters"].(map[string]interface{})
 			props["metadata"] = map[string]interface{}{}
 			props["metadata"].(map[string]interface{})["network"] = "testnetwork"
 			manifest, generateErr = manifestGenerator.GenerateManifest(serviceDeployment, plan, props, nil, nil)
@@ -131,7 +181,8 @@ var _ = Describe("generating manifests", func() {
 
 	Context("dynamic network -2 ", func() {
 		JustBeforeEach(func() {
-			props := map[string]interface{}{}
+			props := map[string]interface{}{"parameters": map[string]interface{}{}}
+			props = props["parameters"].(map[string]interface{})
 			props["metadata"] = map[string]interface{}{}
 			props["metadata"].(map[string]interface{})["network"] = []string{"testnetwork", "testnetwork2"}
 			manifest, generateErr = manifestGenerator.GenerateManifest(serviceDeployment, plan, props, nil, nil)
@@ -164,7 +215,12 @@ var _ = Describe("generating manifests", func() {
 		JustBeforeEach(func() {
 			previousPlan = serviceadapter.Plan{InstanceGroups: previousPlanInstanceGroups}
 			stderr.Reset()
-			manifest, generateErr = manifestGenerator.GenerateManifest(serviceDeployment, plan, map[string]interface{}{"parameters": map[string]interface{}{}}, nil, &previousPlan)
+			props := map[string]interface{}{"parameters": map[string]interface{}{}}
+			props = props["parameters"].(map[string]interface{})
+			props["metadata"] = map[string]interface{}{}
+			props["metadata"].(map[string]interface{})["network"] = "testnetwork"
+			props["parameters"] = map[string]interface{}{}
+			manifest, generateErr = manifestGenerator.GenerateManifest(serviceDeployment, plan, props, nil, &previousPlan)
 		})
 
 		Context("when the previous plan had more haproxy", func() {

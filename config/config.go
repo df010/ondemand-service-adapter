@@ -16,6 +16,7 @@ type Input_Mapping struct {
 	Valueformat string `yaml:"valueformat"`
 	Valuemap    string `yaml:"valuemap"`
 	Groupby     string `yaml:"groupby"`
+	Required    bool   `yaml:"required"`
 }
 
 type Config struct {
@@ -23,6 +24,7 @@ type Config struct {
 		Name     string `yaml:"name"`
 		Datatype string `yaml:"datatype"`
 		Value    string `yaml:"value"`
+		Plan     string `yaml:"plan"`
 	}
 	Instance_Groups []struct {
 		Name      string   `yaml:"name"`
@@ -53,6 +55,27 @@ func (a *Config) GetInputMapping(key string) *Input_Mapping {
 		}
 	}
 	return nil
+}
+
+func (a *Config) GetConfigKeyForRequired(key string) string {
+
+	if strings.HasPrefix(key, "metadata.") {
+		splits := strings.Split(key, "metadata.")
+		return "metadata_config." + splits[1]
+	}
+	return ""
+}
+
+func (a *Config) GetRequiredKeys() []string {
+	var result []string
+	for i := 0; i < len(a.Input_Mappings); i++ {
+		if a.Input_Mappings[i].Required {
+			result = append(result, a.Input_Mappings[i].Key)
+		} else if a.Input_Mappings[i].Groupby != "" {
+			result = append(result, "metadata."+a.Input_Mappings[i].Groupby)
+		}
+	}
+	return result
 }
 
 func (a *Config) GetCredentials(boshVMs bosh.BoshVMs) map[string]interface{} {

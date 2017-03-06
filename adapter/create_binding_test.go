@@ -15,31 +15,35 @@ var _ = Describe("Create", func() {
 	ioutil.WriteFile("/var/vcap/jobs/ondemand/config/config.yml", []byte(configString), 0644)
 
 	var (
-		boshVMs map[string][]string
-
+		boshVMs           map[string][]string
 		binding           serviceadapter.Binding
 		requestParameters map[string]interface{}
 		bindErr           error
 	)
 
 	JustBeforeEach(func() {
-		binding, bindErr = binder.CreateBinding("binding-id", boshVMs, bosh.BoshManifest{}, requestParameters)
+		binding, bindErr = binder.CreateBinding("binding-id", boshVMs, bosh.BoshManifest{
+			Properties: map[string]interface{}{"user": map[string]interface{}{"password": "pass"},
+				"keepalived": map[string]interface{}{"vip": "192.168.1.1"},
+			},
+		}, requestParameters)
 	})
 
 	Context("when there are vms", func() {
 		BeforeEach(func() {
 			requestParameters = map[string]interface{}{}
-			boshVMs = map[string][]string{"redis": {"foo", "bar"}}
+			boshVMs = map[string][]string{"haproxy": {"192.168.0.1", "192.168.0.2"}}
 		})
 
 		It("returns no error", func() {
 			Expect(bindErr).NotTo(HaveOccurred())
 		})
 
-		It("returns redis in credentials", func() {
+		It("returns prop credentials", func() {
 			Expect(binding).To(Equal(
 				serviceadapter.Binding{
-					Credentials: map[string]interface{}{"redis": []interface{}{"foo:6379", "bar:6379"}},
+					Credentials: map[string]interface{}{"ip": []string{"192.168.0.1", "192.168.0.2"},
+						"vip": "192.168.1.1", "user": "cloud", "password": "pass"},
 				},
 			))
 		})
@@ -48,15 +52,15 @@ var _ = Describe("Create", func() {
 	Context("when there are no vms for redis", func() {
 		BeforeEach(func() {
 			requestParameters = map[string]interface{}{}
-			boshVMs = map[string][]string{"baz": {"foo", "bar"}}
+			boshVMs = map[string][]string{}
 		})
 
-		It("returns an error to the cli user", func() {
-			Expect(bindErr).To(MatchError(""))
+		It("returns an error ", func() {
+			Expect(bindErr).To(HaveOccurred())
 		})
 
-		It("logs an error for the operator", func() {
-			Expect(stderr.String()).To(ContainSubstring("no VMs for instance group redis"))
-		})
+		// It("logs an error for the operator", func() {
+		// 	Expect(stderr.String()).To(ContainSubstring("no VMs for instance group redis"))
+		// })
 	})
 })

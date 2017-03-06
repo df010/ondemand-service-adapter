@@ -3,7 +3,6 @@ package adapter
 import (
 	"errors"
 	"fmt"
-	"os"
 	"reflect"
 	"strings"
 
@@ -29,6 +28,69 @@ func getJobs() []string {
 		result[i] = ig.Name
 	}
 	return result
+}
+
+func GetValueByKey(prop map[string]interface{}, key string) interface{} {
+	paths := strings.Split(key, ".")
+	node := prop
+	// fmt.Fprintf(os.Stderr, "................ check node1 :  %+v", node)
+	for j := 0; j < len(paths); j++ {
+		// fmt.Fprintf(os.Stderr, "................ check node2 :  %+v", node[paths[j]])
+		// fmt.Fprintf(os.Stderr, "................ check node3 :  %+v", paths[j])
+		if j == len(paths)-1 {
+			if node[paths[j]] != nil {
+				return node[paths[j]]
+			}
+		} else if node[paths[j]] == nil {
+			// fmt.Fprintf(os.Stderr, "................  %+v,     %+v,     %+v", paths, node, j)
+			return nil
+		} else {
+			node = node[paths[j]].(map[string]interface{})
+		}
+	}
+	return nil
+}
+
+func getErrorMsg(key string, configProperies map[string]interface{}) string {
+	configKey := config.GetConfigInstance().GetConfigKeyForRequired(key)
+	// fmt.Fprintf(os.Stderr, fmt.Sprintf("+++++++++++++++++++=config key found:: %v   ", configKey))
+	if configKey != "" {
+		val := GetValueByKey(configProperies, configKey)
+		// fmt.Fprintf(os.Stderr, fmt.Sprintf("+++++++++++++++++++=config key value is::: %v   ", configProperies))
+
+		if val != nil {
+			return fmt.Sprintf("required key %v are not found in request, please choose from %v", key, val)
+		}
+	}
+	return fmt.Sprintf("required key %v are not found in request", key)
+}
+
+func checkRequiredInputs(requestParams serviceadapter.RequestParameters, configProperies map[string]interface{}) error {
+	keys := config.GetConfigInstance().GetRequiredKeys()
+	errMsg := ""
+	for i := 0; i < len(keys); i++ {
+		paths := strings.Split(keys[i], ".")
+		node := requestParams
+		for j := 0; j < len(paths); j++ {
+			if j == len(paths)-1 {
+				leaf := node[paths[j]]
+				if leaf == nil {
+					errMsg = errMsg + getErrorMsg(keys[i], configProperies)
+				}
+				break
+			} else {
+				if node[paths[j]] == nil {
+					errMsg = errMsg + getErrorMsg(keys[i], configProperies)
+					break
+				}
+				node = node[paths[j]].(map[string]interface{})
+			}
+		}
+	}
+	if errMsg != "" {
+		return errors.New(errMsg)
+	}
+	return nil
 }
 
 func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.ServiceDeployment,
@@ -71,6 +133,19 @@ func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.Se
 	instanceGroups, err := InstanceGroupMapper(servicePlan.InstanceGroups, serviceDeployment.Releases, OnlyStemcellAlias, deploymentInstanceGroupsToJobs)
 	manifestProperties := map[string]interface{}{}
 	manifestProperties = merge(manifestProperties, servicePlan.Properties)
+	if requestParams != nil {
+		tmp := requestParams["parameters"] //.(map[string]interface{})
+		if tmp != nil {
+			requestParams = tmp.(map[string]interface{})
+		}
+	}
+
+	// fmt.Fprintf(os.Stderr, "config properties:: before %+v\n", manifestProperties)
+	// fmt.Fprintf(os.Stderr, "requestParams properties:: before %+v\n", requestParams)
+	err = checkRequiredInputs(requestParams, manifestProperties)
+	if err != nil {
+		return bosh.BoshManifest{}, err
+	}
 	manifestProperties = merge(manifestProperties, requestParams)
 
 	networks := getNetworks(manifestProperties)
@@ -91,20 +166,26 @@ func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.Se
 
 	for _, ig := range instanceGroups {
 		oneInstanceGroup := &ig
-
 		if len(oneInstanceGroup.Networks) != 1 {
 			a.StderrLogger.Println(fmt.Sprintf("expected 1 network for %s, got %d", oneInstanceGroup.Name, len(oneInstanceGroup.Networks)))
 			return bosh.BoshManifest{}, errors.New("")
 		}
 	}
-	instanceGroupName := ""
-	for _, grp := range servicePlan.InstanceGroups {
-		instanceGroupName = instanceGroupName + "-" + grp.Name
+	var planId string
+	if manifestProperties["plan_id"] == nil {
+		for _, grp := range servicePlan.InstanceGroups {
+			planId = planId + "-" + grp.Name
+		}
+	} else {
+		planId = manifestProperties["plan_id"].(string)
 	}
 
-	fmt.Fprintf(os.Stderr, "manifest of properties:: before %+v\n", manifestProperties)
-	manifestProperties, err = persistent.Allocate(manifestProperties, instanceGroupName, serviceDeployment.DeploymentName)
-	fmt.Fprintf(os.Stderr, "manifest of properties:: after %+v\n", manifestProperties)
+	manifestProperties, err = persistent.Allocate(manifestProperties, planId, serviceDeployment.DeploymentName)
+	// fmt.Fprintf(os.Stderr, "manifest of properties:: after %+v\n", manifestProperties)
+	if err != nil {
+		// fmt.Fprintf(os.Stderr, "err occurs for generate manifest:: after %+v\n", err)
+		return bosh.BoshManifest{}, err
+	}
 	var updateBlock = bosh.Update{
 		Canaries:        1,
 		MaxInFlight:     10,

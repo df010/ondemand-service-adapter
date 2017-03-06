@@ -2,8 +2,12 @@ package persistent
 
 import (
 	"fmt"
+	"math/rand"
 	"reflect"
+	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/df010/ondemand-service-adapter/config"
 )
@@ -43,6 +47,7 @@ func (in *Input) initValue(mapping *config.Input_Mapping, value interface{}, gro
 		vals[0] = in.Value
 		in.filterForAvailable(vals, "")
 	}
+	// fmt.Fprintf(os.Stderr, "init input :: after %+v\n", in)
 	return nil
 }
 
@@ -116,11 +121,32 @@ func (in *Input) usedToMap(group string) map[interface{}]interface{} {
 	return result
 }
 
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func randSeq(n int) string {
+	b := make([]rune, n)
+	rand.Seed(time.Now().UTC().UnixNano())
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
+}
+
 func (in *Input) setValues(plan string, deployment string, request *ValueRequest, group string) (interface{}, error) {
-	used := in.findUsed(plan, deployment, request.Key)
+
 	if in.Valuemap == "1" {
 		return in.Value, nil
+	} else if reflect.ValueOf(request.Value).Kind() == reflect.String {
+		r, _ := regexp.Compile("^ *([0-9]*) *: *auto *$")
+		ret := r.FindStringSubmatch(request.Value.(string))
+		if ret != nil || len(ret) == 2 {
+			length, _ := strconv.Atoi(ret[1])
+			return randSeq(length), nil
+		}
 	}
+
+	used := in.findUsed(plan, deployment, request.Key)
+
 	if used == nil {
 		in.Used = append(in.Used, Used{Deployment: deployment, Group: group})
 		used = &in.Used[len(in.Used)-1]

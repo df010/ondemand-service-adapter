@@ -2,7 +2,6 @@ package persistent
 
 import (
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -68,11 +67,14 @@ func (a *Persist) initFor(request *PersistentRequest) error {
 
 	for n := 0; n < len(request.Values); n++ {
 
+		// fmt.Fprintf(os.Stderr, "try to init for  ::  %+v\n", request.Values[n])
 		mapping := config.GetConfigInstance().GetInputMapping(request.Values[n].Key)
 		if mapping == nil {
+			// fmt.Fprintf(os.Stderr, "no config for the request, exit  %+v\n", 1)
 			continue
 		}
 		input := a.getInput(request.Plan, request.Values[n].Key)
+		// fmt.Fprintf(os.Stderr, "init input :: before %+v\n", input)
 		if input == nil {
 			input = &Input{Key: request.Values[n].Key, Plan: request.Plan, Groupby: mapping.Groupby}
 			a.Inputs = append(a.Inputs, *input)
@@ -145,7 +147,7 @@ func (a *Persist) reset() {
 func trylock() lockfile.Lockfile {
 	lock, err := lockfile.New(filepath.Join(os.TempDir(), "lock.me.now.lck"))
 	if err != nil {
-		fmt.Printf("Cannot init lock. reason: %v", err)
+		// fmt.Printf("Cannot init lock. reason: %v", err)
 		panic(err) // handle properly please!
 	}
 
@@ -159,7 +161,7 @@ func trylock() lockfile.Lockfile {
 		err = lock.TryLock()
 	}
 	if err != nil {
-		fmt.Printf("Cannot lock %q, reason: %v", lock, err)
+		// fmt.Printf("Cannot lock %q, reason: %v", lock, err)
 		panic(err) // handle properly please!
 	}
 	return lock
@@ -186,6 +188,7 @@ func Allocate0(request *PersistentRequest) (map[string]interface{}, error) {
 	result := make(map[string]interface{})
 
 	for _, rval := range request.Values {
+		// fmt.Fprintf(os.Stderr, "try to set value for %+v\n", rval)
 		mapping := config.GetConfigInstance().GetInputMapping(rval.Key)
 		if rval.Specific || mapping == nil {
 			result[rval.Key] = rval.Value // no config means use what service provide
@@ -195,6 +198,7 @@ func Allocate0(request *PersistentRequest) (map[string]interface{}, error) {
 		if input == nil {
 			return nil, errors.New("fail to allocate values for request, input not found")
 		}
+		// fmt.Fprintf(os.Stderr, "input :: found for request %+v\n", input)
 		val, err := input.setValues(request.Plan, request.Deployment, &rval, request.getGroup(input.Groupby))
 		if err != nil {
 			return nil, err
@@ -202,6 +206,7 @@ func Allocate0(request *PersistentRequest) (map[string]interface{}, error) {
 		result[rval.Key] = val
 	}
 	// fmt.Println(fmt.Sprintf("after allocate0  for ----   %+v", a))
+	// fmt.Fprintf(os.Stderr, "allocate properties end %+v\n", a)
 	err = a.save()
 	if err != nil {
 		return nil, err

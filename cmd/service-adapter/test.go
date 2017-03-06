@@ -74,7 +74,7 @@ func compactValue(val map[string]interface{}) map[string]interface{} {
 	return result
 }
 
-func main1() {
+func main() {
 	// v := PP{}
 	// v.a = 10
 	// v.cs = make([]QQ, 4)
@@ -108,12 +108,42 @@ func main1() {
 	// pp = append(pp[0:2], pp[3:]...)
 	// fmt.Println(fmt.Sprintf("2 : %v", pp))
 
-	oo := map[string]interface{}{"a.b.c": "c0", "a.b.d": "dd", "a.oo": "oo0", "q": "q0"}
-	pp := map[string]interface{}{"q": "q0"}
-	ff := map[string]interface{}{"c": "c0"}
-	pp["b"] = ff
+	// oo := map[string]interface{}{"a.b.c": "c0", "a.b.d": "dd", "a.oo": "oo0", "q": "q0"}
+	// pp := map[string]interface{}{"q": "q0"}
+	// ff := map[string]interface{}{"c": "c0"}
+	// pp["b"] = ff
+	//
+	// fmt.Println(fmt.Sprintf(".........kkk   %v ", pp))
+	// fmt.Println(fmt.Sprintf(".........kkk   %v ", compactValue(oo)))
+	//
+	// var kk = "metadata.ddfd"
+	// fmt.Println(fmt.Sprintf("value for print is::: %v ", strings.Split(kk, "metadata.")[1]))
 
-	fmt.Println(fmt.Sprintf(".........kkk   %v ", pp))
-	fmt.Println(fmt.Sprintf(".........kkk   %v ", compactValue(oo)))
+	// match, _ := regexp.MatchString("^ *[0-9]*p([a-z]+)ch", "peach")
+	// fmt.Println(match)
+	// r, _ := regexp.Compile("^ *([0-9]*) *: *auto *$")
+	// r, _ := regexp.Compile("(.*)\\[([^\\[\\]]*)\\]\\.*(.*)")
+	// fmt.Println(r.MatchString("peach"))
+	// fmt.Println(r.FindStringSubmatch(" pp[kk]")[3])
+	// fmt.Println(r.FindStringSubmatch(" pp[kk]"))
+	pp := make(map[string]interface{})
+	// fmt.Println(len(r.FindStringSubmatch(" pp[kk]")))
+	fmt.Println(fmt.Sprintf("hahaha %+v ", pp["kk"].(string)+"ddd"))
+	// pp["kk"] = "ccc"
+	// fmt.Println(fmt.Sprintf("hahaha %+v ", pp["kk"] == nil))
+	// fmt.Println(r.FindStringIndex("peach punch"))
+	// fmt.Println(r.FindStringSubmatch("peach punch"))
+	// fmt.Println(r.FindStringSubmatchIndex("peach punch"))
+	// fmt.Println(r.FindAllString("peach punch pinch", -1))
+	// fmt.Println(r.FindAllStringSubmatchIndex(
+	// 	"peach punch pinch", -1))
+	// fmt.Println(r.FindAllString("peach punch pinch", 2))
+	// fmt.Println(r.Match([]byte("peach")))
+	// r = regexp.MustCompile("p([a-z]+)ch")
+	// fmt.Println(r)
+	// fmt.Println(r.ReplaceAllString("a peach", "<fruit>"))
+	// in := []byte("a peach")
+	// out := r.ReplaceAllFunc(in, bytes.ToUpper)
+	// fmt.Println(string(out))
 
 }

@@ -19,10 +19,18 @@ var (
 	configString      string = "" +
 		`---
 binding_credentials:
-- name: haproxy
-  plan: haproxy
+- name: ip
   datatype: array
-  value: "[JOB.haproxy.ip]"
+  value: job[*].ip
+- name: vip
+  datatype: string
+  value: properties[keepalived.vip]
+- name: user
+  datatype: string
+  value: cloud
+- name: password
+  datatype: string
+  value: properties[user.password]
 input_mappings:
 - key: keepalived.vip1
   valueformat: ip_range
