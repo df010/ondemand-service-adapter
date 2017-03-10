@@ -32,20 +32,22 @@ func getJobs() []string {
 
 func GetValueByKey(prop map[string]interface{}, key string) interface{} {
 	paths := strings.Split(key, ".")
-	node := prop
+	var node interface{}
+	node = prop
+	// var node1 map[interface{}]interface{} = nil
 	// fmt.Fprintf(os.Stderr, "................ check node1 :  %+v", node)
 	for j := 0; j < len(paths); j++ {
 		// fmt.Fprintf(os.Stderr, "................ check node2 :  %+v", node[paths[j]])
 		// fmt.Fprintf(os.Stderr, "................ check node3 :  %+v", paths[j])
-		if j == len(paths)-1 {
-			if node[paths[j]] != nil {
-				return node[paths[j]]
-			}
-		} else if node[paths[j]] == nil {
-			// fmt.Fprintf(os.Stderr, "................  %+v,     %+v,     %+v", paths, node, j)
-			return nil
+		if reflect.TypeOf(node).Key().Kind() == reflect.String {
+			node = node.(map[string]interface{})[paths[j]]
 		} else {
-			node = node[paths[j]].(map[string]interface{})
+			node = node.(map[interface{}]interface{})[paths[j]]
+		}
+		if j == len(paths)-1 {
+			return node
+		} else if node == nil {
+			return nil
 		}
 	}
 	return nil
@@ -121,7 +123,7 @@ func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.Se
 	}
 	// a.StderrLogger.Println(fmt.Sprintf("service ... 1 "))
 	deploymentInstanceGroupsToJobs := defaultDeploymentInstanceGroupsToJobs()
-	// a.StderrLogger.Println(fmt.Sprintf("service ... 2 %v ", deploymentInstanceGroupsToJobs))
+	a.StderrLogger.Println(fmt.Sprintf("instance groups to job is::: %+v ", deploymentInstanceGroupsToJobs))
 	// err := checkInstanceGroupsPresent(getJobs(), servicePlan.InstanceGroups)
 	//
 	// a.StderrLogger.Println(fmt.Sprintf("service ... 3 "))
@@ -131,6 +133,8 @@ func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.Se
 	// }
 
 	instanceGroups, err := InstanceGroupMapper(servicePlan.InstanceGroups, serviceDeployment.Releases, OnlyStemcellAlias, deploymentInstanceGroupsToJobs)
+	a.StderrLogger.Println(fmt.Sprintf("instance groups are::: %+v ", instanceGroups))
+	a.StderrLogger.Println(fmt.Sprintf("instance groups are::: %+v ", err))
 	manifestProperties := map[string]interface{}{}
 	manifestProperties = merge(manifestProperties, servicePlan.Properties)
 	if requestParams != nil {

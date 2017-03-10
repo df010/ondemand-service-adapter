@@ -2,9 +2,11 @@ package persistent
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/df010/ondemand-service-adapter/config"
@@ -235,7 +237,47 @@ func Allocate(properties map[string]interface{}, plan string, deployment string)
 	return nil, nil
 }
 
-func Release(plan string, deployment string) error {
+func toMap(str string) map[string]string {
+	result := make(map[string]string)
+	if str == "" {
+		return result
+	}
+	vals := strings.Split(str, ",")
+	for i := 0; i < len(vals); i++ {
+		result[vals[i]] = vals[i]
+	}
+	return result
+}
+
+func ReleaseOthers(deployments string) error {
+	lock := trylock()
+	defer lock.Unlock()
+	deps := toMap(deployments)
+	if len(deps) == 0 {
+		return fmt.Errorf("no deployments found, exit release for %+v", deployments)
+	}
+
+	a := &Persist{}
+	a.reset()
+	err := a.init(nil)
+	if err != nil {
+		return err
+	}
+	for i := 0; i < len(a.Inputs); i++ {
+		for n := 0; n < len(a.Inputs[i].Used); n++ {
+			used := &(a.Inputs[i].Used[n])
+			if deps[used.Deployment] == "" {
+				a.Inputs[i].Used = append(a.Inputs[i].Used[0:n], a.Inputs[i].Used[n+1:]...)
+				a.Inputs[i].Available.push(used.Values, used.Group)
+				// fmt.Println(fmt.Sprintf("fater release for ----   %+v", a.Inputs[i]))
+			}
+		}
+	}
+	a.save()
+	return nil
+
+}
+func Release(deployment string) error {
 	lock := trylock()
 	defer lock.Unlock()
 

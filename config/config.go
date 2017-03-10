@@ -2,11 +2,8 @@ package config
 
 import (
 	"io/ioutil"
-	"regexp"
 	"strings"
 	"sync"
-
-	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 
 	yaml "gopkg.in/yaml.v2"
 )
@@ -74,37 +71,6 @@ func (a *Config) GetRequiredKeys() []string {
 		} else if a.Input_Mappings[i].Groupby != "" {
 			result = append(result, "metadata."+a.Input_Mappings[i].Groupby)
 		}
-	}
-	return result
-}
-
-func (a *Config) GetCredentials(boshVMs bosh.BoshVMs) map[string]interface{} {
-	result := make(map[string]interface{})
-	for _, credential := range a.Binding_Credentials {
-		re := regexp.MustCompile("\\[([^\\[\\]]*)\\]")
-		jobIpExpr := regexp.MustCompile("JOB\\.(.*)\\.ip")
-		var resultCredential interface{}
-		jobName := ""
-		for _, str := range re.FindAllString(credential.Value, -1) {
-			innerStr := strings.TrimPrefix(str, "[")
-			innerStr = strings.TrimSuffix(innerStr, "]")
-			if jobIpExpr.MatchString(innerStr) {
-				jobName = jobIpExpr.FindStringSubmatch(innerStr)[1]
-			}
-		}
-		if jobName != "" {
-			if credential.Datatype == "array" {
-				arr := make([]string, len(boshVMs[jobName]))
-				for i, ip := range boshVMs[jobName] {
-					arr[i] = strings.Replace(credential.Value, "[JOB."+jobName+".ip]", ip, -1)
-				}
-				resultCredential = arr
-			}
-		}
-		if resultCredential != nil {
-			result[credential.Name] = resultCredential
-		}
-
 	}
 	return result
 }

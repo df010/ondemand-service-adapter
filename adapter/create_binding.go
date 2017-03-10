@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 
@@ -11,7 +12,12 @@ import (
 )
 
 func (b *Binder) CreateBinding(bindingId string, boshVMs bosh.BoshVMs, manifest bosh.BoshManifest, requestParams serviceadapter.RequestParameters) (serviceadapter.Binding, error) {
-	credentials, err := getCredentials("haproxy", manifest.Properties, boshVMs)
+	fmt.Fprintf(os.Stderr, "creat binding message 1:: %+v\n", bindingId)
+	fmt.Fprintf(os.Stderr, "creat binding message 2:: %+v\n", boshVMs)
+	fmt.Fprintf(os.Stderr, "creat binding message 3:: %+v\n", manifest)
+	fmt.Fprintf(os.Stderr, "creat binding message 4:: %+v\n", requestParams)
+
+	credentials, err := getCredentials(requestParams["plan_id"].(string), manifest.Properties, boshVMs)
 	if err != nil {
 		return serviceadapter.Binding{}, err
 	}
@@ -24,7 +30,9 @@ func (b *Binder) CreateBinding(bindingId string, boshVMs bosh.BoshVMs, manifest 
 func getCredentials(plan string, prop map[string]interface{}, boshVMs bosh.BoshVMs) (map[string]interface{}, error) {
 	result := make(map[string]interface{})
 	for _, credential := range config.GetConfigInstance().Binding_Credentials {
+		fmt.Fprintf(os.Stderr, "getCredentials 000000  :: %+v\n", credential)
 		if credential.Plan == "" || credential.Plan == plan {
+			fmt.Fprintf(os.Stderr, "getCredentials 000  :: %+v\n", result)
 			r, _ := regexp.Compile("(.*)\\[([^\\[\\]]*)\\]\\.*(.*)")
 			matches := r.FindStringSubmatch(credential.Value)
 			if len(matches) < 4 {
@@ -47,9 +55,11 @@ func getCredentials(plan string, prop map[string]interface{}, boshVMs bosh.BoshV
 				if err != nil {
 					return nil, err
 				}
+				fmt.Fprintf(os.Stderr, "getCredentials 00  :: %+v\n", result)
 			}
 		}
 	}
+	fmt.Fprintf(os.Stderr, "getCredentials:: %+v\n", boshVMs)
 	return result, nil
 }
 

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -135,10 +136,13 @@ func combine(a map[string]interface{}, b map[string]interface{}) map[string]inte
 func flatMap(prefix string, val map[string]interface{}) map[string]interface{} {
 	result := map[string]interface{}{}
 	for key, value := range val {
-		if reflect.TypeOf(value).Kind() == reflect.Map {
-			result = combine(result, flatMap(prefix+key+".", (value.(map[string]interface{}))))
-		} else {
-			(result)[prefix+key] = value
+		fmt.Fprintf(os.Stderr, "...................... %+v...... %+v", key, value)
+		if value != nil {
+			if reflect.TypeOf(value).Kind() == reflect.Map {
+				result = combine(result, flatMap(prefix+key+".", (value.(map[string]interface{}))))
+			} else {
+				(result)[prefix+key] = value
+			}
 		}
 	}
 	return result

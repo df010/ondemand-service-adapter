@@ -308,7 +308,7 @@ var _ = Describe("persistent", func() {
 				Expect(err).To(HaveOccurred())
 
 				request3.Deployment = "dep1"
-				err = persistent.Release(request3.Plan, request3.Deployment)
+				err = persistent.Release(request3.Deployment)
 				Expect(err).NotTo(HaveOccurred())
 
 				request3.Deployment = "dep2"
