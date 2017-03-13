@@ -74,7 +74,7 @@ func compactValue(val map[string]interface{}) map[string]interface{} {
 	return result
 }
 
-func main1() {
+func main() {
 	// v := PP{}
 	// v.a = 10
 	// v.cs = make([]QQ, 4)
@@ -126,9 +126,9 @@ func main1() {
 	// fmt.Println(r.MatchString("peach"))
 	// fmt.Println(r.FindStringSubmatch(" pp[kk]")[3])
 	// fmt.Println(r.FindStringSubmatch(" pp[kk]"))
-	pp := make(map[string]interface{})
+	// pp := make(map[string]interface{})
 	// fmt.Println(len(r.FindStringSubmatch(" pp[kk]")))
-	fmt.Println(fmt.Sprintf("hahaha %+v ", pp["kk"].(string)+"ddd"))
+	// fmt.Println(fmt.Sprintf("hahaha %+v ", pp["kk"].(string)+"ddd"))
 	// pp["kk"] = "ccc"
 	// fmt.Println(fmt.Sprintf("hahaha %+v ", pp["kk"] == nil))
 	// fmt.Println(r.FindStringIndex("peach punch"))
@@ -145,5 +145,15 @@ func main1() {
 	// in := []byte("a peach")
 	// out := r.ReplaceAllFunc(in, bytes.ToUpper)
 	// fmt.Println(string(out))
+
+	pp := []int{1, 2, 3, 4, 5, 6}
+	for i := 0; i < len(pp); i++ {
+		if pp[i] < 5 && pp[i] > 1 {
+			pp = append(pp[0:i], pp[i+1:]...)
+			i = i - 1
+		}
+	}
+	// pp = append(pp[0:0], pp[1:]...)
+	fmt.Println(fmt.Sprintf("hahaha %+v ", pp))
 
 }

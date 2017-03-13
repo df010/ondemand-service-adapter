@@ -264,12 +264,14 @@ func ReleaseOthers(deployments string) error {
 		return err
 	}
 	for i := 0; i < len(a.Inputs); i++ {
+		// var releasedUsed []Used
 		for n := 0; n < len(a.Inputs[i].Used); n++ {
-			used := &(a.Inputs[i].Used[n])
+			used := a.Inputs[i].Used[n]
 			if deps[used.Deployment] == "" {
 				a.Inputs[i].Used = append(a.Inputs[i].Used[0:n], a.Inputs[i].Used[n+1:]...)
 				a.Inputs[i].Available.push(used.Values, used.Group)
-				// fmt.Println(fmt.Sprintf("fater release for ----   %+v", a.Inputs[i]))
+				fmt.Println(fmt.Sprintf("fater release for ----   %+v", used))
+				n = n - 1
 			}
 		}
 	}
@@ -293,6 +295,7 @@ func Release(deployment string) error {
 			if deployment == used.Deployment {
 				a.Inputs[i].Used = append(a.Inputs[i].Used[0:n], a.Inputs[i].Used[n+1:]...)
 				a.Inputs[i].Available.push(used.Values, used.Group)
+				n = n - 1
 				// fmt.Println(fmt.Sprintf("fater release for ----   %+v", a.Inputs[i]))
 			}
 		}

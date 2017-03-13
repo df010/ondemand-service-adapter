@@ -33,7 +33,7 @@ var _ = Describe("generating manifests", func() {
 		}
 		generatedInstanceGroups = []bosh.InstanceGroup{{
 			Name:     "haproxy",
-			Networks: []bosh.Network{{Name: "an-etwork"}},
+			Networks: []bosh.Network{{Name: "a"}},
 			Jobs: []bosh.Job{{
 				Name: "haproxy",
 			}, {
@@ -76,12 +76,12 @@ var _ = Describe("generating manifests", func() {
 
 	Context("when the instance group mapper maps instance groups successfully", func() {
 		JustBeforeEach(func() {
-			props := map[string]interface{}{"parameters": map[string]interface{}{}}
-			props = props["parameters"].(map[string]interface{})
+			requestParamters := map[string]interface{}{"parameters": map[string]interface{}{}}
+			props := requestParamters["parameters"].(map[string]interface{})
 			props["metadata"] = map[string]interface{}{}
-			props["metadata"].(map[string]interface{})["network"] = "an-etwork"
+			props["metadata"].(map[string]interface{})["network"] = "a"
 
-			manifest, generateErr = manifestGenerator.GenerateManifest(serviceDeployment, plan, props, nil, nil)
+			manifest, generateErr = manifestGenerator.GenerateManifest(serviceDeployment, plan, requestParamters, nil, nil)
 		})
 
 		It("returns no error", func() {
@@ -116,14 +116,14 @@ var _ = Describe("generating manifests", func() {
 
 	Context("props inputs", func() {
 		JustBeforeEach(func() {
-			props := map[string]interface{}{"parameters": map[string]interface{}{}}
-			props = props["parameters"].(map[string]interface{})
+			requestParamters := map[string]interface{}{"parameters": map[string]interface{}{}}
+			props := requestParamters["parameters"].(map[string]interface{})
 			props["keepalived"] = map[string]interface{}{}
 			props["keepalived"].(map[string]interface{})["ooo"] = "kkkoo"
 			props["iii"] = "ii"
 			props["metadata"] = map[string]interface{}{}
 			props["metadata"].(map[string]interface{})["network"] = "testnetwork"
-			manifest, generateErr = manifestGenerator.GenerateManifest(serviceDeployment, plan, props, nil, nil)
+			manifest, generateErr = manifestGenerator.GenerateManifest(serviceDeployment, plan, requestParamters, nil, nil)
 		})
 
 		It("returns no error", func() {
@@ -139,12 +139,12 @@ var _ = Describe("generating manifests", func() {
 
 	Context("require parameter missing msg ", func() {
 		JustBeforeEach(func() {
-			props := map[string]interface{}{"parameters": map[string]interface{}{}}
-			props = props["parameters"].(map[string]interface{})
+			requestParamters := map[string]interface{}{"parameters": map[string]interface{}{}}
+			props := requestParamters["parameters"].(map[string]interface{})
 			props["keepalived"] = map[string]interface{}{}
 			props["keepalived"].(map[string]interface{})["ooo"] = "kkkoo"
 			props["iii"] = "ii"
-			manifest, generateErr = manifestGenerator.GenerateManifest(serviceDeployment, plan, props, nil, nil)
+			manifest, generateErr = manifestGenerator.GenerateManifest(serviceDeployment, plan, requestParamters, nil, nil)
 		})
 
 		It("returns error", func() {
@@ -160,11 +160,11 @@ var _ = Describe("generating manifests", func() {
 
 	Context("dynamic network", func() {
 		JustBeforeEach(func() {
-			props := map[string]interface{}{"parameters": map[string]interface{}{}}
-			props = props["parameters"].(map[string]interface{})
+			requestParamters := map[string]interface{}{"parameters": map[string]interface{}{}}
+			props := requestParamters["parameters"].(map[string]interface{})
 			props["metadata"] = map[string]interface{}{}
 			props["metadata"].(map[string]interface{})["network"] = "testnetwork"
-			manifest, generateErr = manifestGenerator.GenerateManifest(serviceDeployment, plan, props, nil, nil)
+			manifest, generateErr = manifestGenerator.GenerateManifest(serviceDeployment, plan, requestParamters, nil, nil)
 		})
 
 		It("returns no error", func() {
@@ -181,11 +181,11 @@ var _ = Describe("generating manifests", func() {
 
 	Context("dynamic network -2 ", func() {
 		JustBeforeEach(func() {
-			props := map[string]interface{}{"parameters": map[string]interface{}{}}
-			props = props["parameters"].(map[string]interface{})
+			requestParamters := map[string]interface{}{"parameters": map[string]interface{}{}}
+			props := requestParamters["parameters"].(map[string]interface{})
 			props["metadata"] = map[string]interface{}{}
 			props["metadata"].(map[string]interface{})["network"] = []string{"testnetwork", "testnetwork2"}
-			manifest, generateErr = manifestGenerator.GenerateManifest(serviceDeployment, plan, props, nil, nil)
+			manifest, generateErr = manifestGenerator.GenerateManifest(serviceDeployment, plan, requestParamters, nil, nil)
 		})
 
 		It("returns no error", func() {
@@ -215,12 +215,12 @@ var _ = Describe("generating manifests", func() {
 		JustBeforeEach(func() {
 			previousPlan = serviceadapter.Plan{InstanceGroups: previousPlanInstanceGroups}
 			stderr.Reset()
-			props := map[string]interface{}{"parameters": map[string]interface{}{}}
-			props = props["parameters"].(map[string]interface{})
+			requestParamters := map[string]interface{}{"parameters": map[string]interface{}{}}
+			props := requestParamters["parameters"].(map[string]interface{})
 			props["metadata"] = map[string]interface{}{}
 			props["metadata"].(map[string]interface{})["network"] = "testnetwork"
 			props["parameters"] = map[string]interface{}{}
-			manifest, generateErr = manifestGenerator.GenerateManifest(serviceDeployment, plan, props, nil, &previousPlan)
+			manifest, generateErr = manifestGenerator.GenerateManifest(serviceDeployment, plan, requestParamters, nil, &previousPlan)
 		})
 
 		Context("when the previous plan had more haproxy", func() {

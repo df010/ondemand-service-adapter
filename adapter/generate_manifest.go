@@ -59,8 +59,8 @@ func getErrorMsg(key string, configProperies map[string]interface{}) string {
 	if configKey != "" {
 		val := GetValueByKey(configProperies, configKey)
 		// fmt.Fprintf(os.Stderr, fmt.Sprintf("+++++++++++++++++++=config key value is::: %v   ", configProperies))
-
 		if val != nil {
+			// panic("kaaaa")
 			return fmt.Sprintf("required key %v are not found in request, please choose from %v", key, val)
 		}
 	}
@@ -68,6 +68,7 @@ func getErrorMsg(key string, configProperies map[string]interface{}) string {
 }
 
 func checkRequiredInputs(requestParams serviceadapter.RequestParameters, configProperies map[string]interface{}) error {
+	// fmt.Fprintf(os.Stderr, fmt.Sprintf("+++++++++++++++++++=check inputs::: %v   ", requestParams))
 	keys := config.GetConfigInstance().GetRequiredKeys()
 	errMsg := ""
 	for i := 0; i < len(keys); i++ {
@@ -102,6 +103,7 @@ func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.Se
 	previousPlan *serviceadapter.Plan,
 ) (bosh.BoshManifest, error) {
 	// a.StderrLogger.Println(fmt.Sprintf("service plan is.... %v ", servicePlan))
+	// fmt.Fprintf(os.Stderr, fmt.Sprintf("+++++++++++++++++++=check inputs::: %v   ", requestParams))
 	if previousPlan != nil {
 		prev := instanceCounts(*previousPlan)
 		current := instanceCounts(servicePlan)
@@ -123,7 +125,7 @@ func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.Se
 	}
 	// a.StderrLogger.Println(fmt.Sprintf("service ... 1 "))
 	deploymentInstanceGroupsToJobs := defaultDeploymentInstanceGroupsToJobs()
-	a.StderrLogger.Println(fmt.Sprintf("instance groups to job is::: %+v ", deploymentInstanceGroupsToJobs))
+	// a.StderrLogger.Println(fmt.Sprintf("instance groups to job is::: %+v ", deploymentInstanceGroupsToJobs))
 	// err := checkInstanceGroupsPresent(getJobs(), servicePlan.InstanceGroups)
 	//
 	// a.StderrLogger.Println(fmt.Sprintf("service ... 3 "))
@@ -133,24 +135,28 @@ func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.Se
 	// }
 
 	instanceGroups, err := InstanceGroupMapper(servicePlan.InstanceGroups, serviceDeployment.Releases, OnlyStemcellAlias, deploymentInstanceGroupsToJobs)
-	a.StderrLogger.Println(fmt.Sprintf("instance groups are::: %+v ", instanceGroups))
-	a.StderrLogger.Println(fmt.Sprintf("instance groups are::: %+v ", err))
+	// a.StderrLogger.Println(fmt.Sprintf("instance groups are::: %+v ", instanceGroups))
+	// a.StderrLogger.Println(fmt.Sprintf("instance groups are::: %+v ", err))
 	manifestProperties := map[string]interface{}{}
 	manifestProperties = merge(manifestProperties, servicePlan.Properties)
-	if requestParams != nil {
-		tmp := requestParams["parameters"] //.(map[string]interface{})
-		if tmp != nil {
-			requestParams = tmp.(map[string]interface{})
-		}
-	}
+	// var parameters map[string]interface{}
+	// if requestParams != nil {
+	// 	tmp := requestParams["parameters"] //.(map[string]interface{})
+	// 	if tmp != nil {
+	// 		parameters = tmp.(map[string]interface{})
+	// 	} else {
+	// 		// parameters = requestParams
+	// 	}
+	// }
 
 	// fmt.Fprintf(os.Stderr, "config properties:: before %+v\n", manifestProperties)
-	// fmt.Fprintf(os.Stderr, "requestParams properties:: before %+v\n", requestParams)
-	err = checkRequiredInputs(requestParams, manifestProperties)
+	// fmt.Fprintf(os.Stderr, "requestParams properties:: before 1 %+v\n", requestParams)
+	// fmt.Fprintf(os.Stderr, "requestParams properties:: before 2 %+v\n", parameters)
+	err = checkRequiredInputs(requestParams.ArbitraryParams(), manifestProperties)
 	if err != nil {
 		return bosh.BoshManifest{}, err
 	}
-	manifestProperties = merge(manifestProperties, requestParams)
+	manifestProperties = merge(manifestProperties, requestParams.ArbitraryParams())
 
 	networks := getNetworks(manifestProperties)
 	if networks != nil {
@@ -176,12 +182,12 @@ func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.Se
 		}
 	}
 	var planId string
-	if manifestProperties["plan_id"] == nil {
+	if requestParams["plan_id"] == nil {
 		for _, grp := range servicePlan.InstanceGroups {
 			planId = planId + "-" + grp.Name
 		}
 	} else {
-		planId = manifestProperties["plan_id"].(string)
+		planId = requestParams["plan_id"].(string)
 	}
 
 	manifestProperties, err = persistent.Allocate(manifestProperties, planId, serviceDeployment.DeploymentName)
