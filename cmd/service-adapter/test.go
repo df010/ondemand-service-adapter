@@ -74,7 +74,7 @@ func compactValue(val map[string]interface{}) map[string]interface{} {
 	return result
 }
 
-func main() {
+func main1() {
 	// v := PP{}
 	// v.a = 10
 	// v.cs = make([]QQ, 4)
