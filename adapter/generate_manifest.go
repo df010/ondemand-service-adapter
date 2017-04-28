@@ -168,6 +168,17 @@ func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.Se
 		instanceGroups = igs
 	}
 
+	vmtype :=getVMType(manifestProperties)
+
+	if vmtype != "" {
+		igs := make([]bosh.InstanceGroup, len(instanceGroups)) //copy a new array of ig to make sure the
+		for i := 0; i < len(instanceGroups); i++ {
+			igs[i] = instanceGroups[i]
+			igs[i].VMType = vmtype
+		}
+		instanceGroups = igs
+	}
+
 	// a.StderrLogger.Println(fmt.Sprintf("service ... 4 %v ", instanceGroups))
 	if err != nil {
 		a.StderrLogger.Println(err.Error())
@@ -285,6 +296,13 @@ func getNetworks(props map[string]interface{}) []bosh.Network {
 	}
 	return result
 
+}
+
+func getVMType(props map[string]interface{}) string {
+	if props == nil || props["metadata"] == nil {
+		return ""
+	}
+	return props["metadata"].(map[string]interface{})["vm_type"].(string)
 }
 
 func checkInstanceGroupsPresent(names []string, instanceGroups []serviceadapter.InstanceGroup) error {
