@@ -299,7 +299,7 @@ func getNetworks(props map[string]interface{}) []bosh.Network {
 }
 
 func getVMType(props map[string]interface{}) string {
-	if props == nil || props["metadata"] == nil {
+	if props == nil || props["metadata"] == nil || props["metadata"].(map[string]interface{})["vm_type"] ==nil {
 		return ""
 	}
 	return props["metadata"].(map[string]interface{})["vm_type"].(string)
