@@ -104,6 +104,7 @@ func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.Se
 ) (bosh.BoshManifest, error) {
 	// a.StderrLogger.Println(fmt.Sprintf("service plan is.... %v ", servicePlan))
 	// fmt.Fprintf(os.Stderr, fmt.Sprintf("+++++++++++++++++++=check inputs::: %v   ", requestParams))
+	a.StderrLogger.Println(fmt.Sprintf("cannot migrate to a smaller plan for %v", requestParams))
 	if previousPlan != nil {
 		prev := instanceCounts(*previousPlan)
 		current := instanceCounts(servicePlan)
