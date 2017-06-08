@@ -105,6 +105,11 @@ func (a *ManifestGenerator) GenerateManifest(serviceDeployment serviceadapter.Se
 	// a.StderrLogger.Println(fmt.Sprintf("service plan is.... %v ", servicePlan))
 	// fmt.Fprintf(os.Stderr, fmt.Sprintf("+++++++++++++++++++=check inputs::: %v   ", requestParams))
 	a.StderrLogger.Println(fmt.Sprintf("cannot migrate to a smaller plan for %v", requestParams))
+
+	if( len(requestParams) == 0) {//stupid api design
+		return *previousManifest,nil;
+	}
+	
 	if previousPlan != nil {
 		prev := instanceCounts(*previousPlan)
 		current := instanceCounts(servicePlan)
